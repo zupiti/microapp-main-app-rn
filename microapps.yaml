@@ -1,0 +1,99 @@
+# microapps.yaml — workspace orchestration (Melos-like for RN multi-repo)
+# Docs: microapp-main-app-rn/rules-project/IMPLEMENTACAO.md + openspec capability local-dev-melos-like
+
+name: poc-microapps
+# Yarn Classic (1.x) is the package manager for this shell.
+packageManager: yarn
+
+# Packages that participate in local development (siblings of this file).
+packages:
+  - microapp-main-app-rn
+  - microapp1-rn
+  - microapp1-rn/example
+  - microapp2-rn
+  - microapp2-rn/example
+  - microapp3-rn
+  - microapp3-rn/example
+  - microfront1-rn
+  - microfront2-rn
+  - shared-rn
+
+# Runtime app that Metro starts when developing the whole system.
+mainApp: microapp-main-app-rn
+
+# How local packages are referenced in package.json while in local mode.
+# Yarn Classic: "*" (workspace resolution). Yarn Berry: "workspace:*".
+localDependencyRange: "*"
+
+# How graph packages are referenced in package.json outside local mode.
+dependencyMode: git
+gitDependencyRefs:
+  microapp1-rn: git+https://github.com/zupiti/microapp1-rn.git#main
+  microapp2-rn: git+https://github.com/zupiti/microapp2-rn.git#main
+  microapp3-rn: git+https://github.com/zupiti/microapp3-rn.git#main
+  microfront1-rn: git+https://github.com/zupiti/microfront1-rn.git#main
+  microfront2-rn: git+https://github.com/zupiti/microfront2-rn.git#main
+  shared-rn: git+https://github.com/zupiti/shared-rn.git#main
+
+# Dependency graph used by point-local / validate (consumer -> providers).
+# Mirrors: 1 mainapp → N microapps/shared; 1 microapp → N microfronts/shared.
+# Each microapp's example app is a standalone consumer of that microapp only
+# (so it can run independently of microapp-main-app-rn).
+graph:
+  microapp-main-app-rn:
+    - microapp1-rn
+    - microapp2-rn
+    - microapp3-rn
+    - shared-rn
+  microapp1-rn:
+    - microfront1-rn
+    - microfront2-rn
+    - shared-rn
+  microapp2-rn:
+    - microfront1-rn
+    - shared-rn
+  microapp3-rn:
+    - microfront2-rn
+    - shared-rn
+  microapp1-rn/example:
+    - microapp1-rn
+    - shared-rn
+  microapp2-rn/example:
+    - microapp2-rn
+    - shared-rn
+  microapp3-rn/example:
+    - microapp3-rn
+    - shared-rn
+
+# Filters for scoped commands (optional convenience aliases).
+scopes:
+  apps:
+    - microapp-main-app-rn
+  microapps:
+    - microapp1-rn
+    - microapp2-rn
+    - microapp3-rn
+  microfronts:
+    - microfront1-rn
+    - microfront2-rn
+  libs:
+    - microapp1-rn
+    - microapp2-rn
+    - microapp3-rn
+    - microfront1-rn
+    - microfront2-rn
+    - shared-rn
+  examples:
+    - microapp1-rn/example
+    - microapp2-rn/example
+    - microapp3-rn/example
+
+# Scripts available via: yarn microapps run <script> [--scope <name>]
+scripts:
+  bootstrap: bootstrap
+  start: start
+  build:libs: build:libs
+  clean: clean
+  list: list
+  point-local: point-local
+  validate: validate

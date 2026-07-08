@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Arquitetura Microapps React Native — POC</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --bg-soft: #111826;
+    --panel: #151d2c;
+    --border: #23304a;
+    --text: #e8ecf3;
+    --muted: #93a1b8;
+    --accent: #5aa9ff;
+    --accent2: #7ee0c3;
+    --accent3: #ffb454;
+    --accent4: #ff6f91;
+    --mono: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    height: 100%;
+    overflow: hidden;
+  }
+  #deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 56px 84px;
+    opacity: 0;
+    transform: translateX(24px);
+    transition: opacity .35s ease, transform .35s ease;
+    overflow-y: auto;
+  }
+  .slide.active {
+    display: flex;
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .kicker {
+    font-size: 13px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 44px;
+    margin: 0 0 6px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  h2 {
+    font-size: 32px;
+    margin: 0 0 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    max-width: 820px;
+  }
+  .grid {
+    display: grid;
+    gap: 18px;
+  }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    color: var(--text);
+  }
+  .card p, .card li {
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .pill {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  .pill.blue { background: rgba(90,169,255,.14); color: var(--accent); }
+  .pill.green { background: rgba(126,224,195,.14); color: var(--accent2); }
+  .pill.orange { background: rgba(255,180,84,.14); color: var(--accent3); }
+  .pill.pink { background: rgba(255,111,145,.14); color: var(--accent4); }
+
+  code, pre, .mono {
+    font-family: var(--mono);
+  }
+  pre {
+    background: #0a0e16;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    overflow-x: auto;
+    color: #d7e2f5;
+  }
+  pre .c { color: #6f819e; } /* comment */
+  pre .k { color: var(--accent); } /* keyword/command */
+  pre .s { color: var(--accent2); } /* string/path */
+  code.inline {
+    background: rgba(255,255,255,.07);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 6px;
+    font-size: 13px;
+    color: var(--accent2);
+  }
+
+  /* Architecture tree */
+  .tree {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .node {
+    border-radius: 12px;
+    padding: 12px 22px;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .node.main { background: linear-gradient(135deg, #1b2b46, #16233a); color: var(--accent); border-color: #2a3f63; }
+  .node.app { background: linear-gradient(135deg, #16342c, #123326); color: var(--accent2); border-color: #1e4a3c; }
+  .node.front { background: linear-gradient(135deg, #3a2a12, #33240f); color: var(--accent3); border-color: #55401c; }
+  .row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .connector { width: 2px; height: 18px; background: var(--border); }
+  .branch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+  table.cmp {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+  }
+  table.cmp th, table.cmp td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.cmp th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; }
+  table.cmp td.k { color: var(--accent); font-weight: 700; }
+  table.cmp td.v { color: var(--text); }
+
+  ul.bullets { margin: 0; padding-left: 20px; }
+  ul.bullets li { color: var(--muted); margin-bottom: 8px; font-size: 15px; line-height: 1.5; }
+  ul.bullets li strong { color: var(--text); }
+
+  .badge-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .badge {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  footer.foot {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: var(--muted);
+    padding-top: 18px;
+  }
+
+  /* Progress + controls */
+  #progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .3s ease;
+    z-index: 20;
+  }
+  #nav {
+    position: fixed;
+    bottom: 22px;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 20;
+    font-size: 13px;
+    color: var(--muted);
+    background: rgba(21,29,44,.85);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 16px;
+    backdrop-filter: blur(6px);
+  }
+  #nav button {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #nav button:hover { border-color: var(--accent); color: var(--accent); }
+  #counter { min-width: 46px; text-align: center; }
+
+  .flow-steps { display: flex; flex-direction: column; gap: 10px; }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .flow-num {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0b0f17;
+    font-weight: 800;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flow-step .t { color: var(--text); font-weight: 700; font-size: 14.5px; margin-bottom: 2px; }
+  .flow-step .d { color: var(--muted); font-size: 13.5px; }
+
+  .warn {
+    border-left: 3px solid var(--accent3);
+    background: rgba(255,180,84,.08);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #f2d9ab;
+  }
+  .ok {
+    border-left: 3px solid var(--accent2);
+    background: rgba(126,224,195,.08);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #cdeee0;
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="deck"></div>
+
+<div id="nav">
+  <button id="prevBtn" title="Anterior">&#8249;</button>
+  <span id="counter">1 / 14</span>
+  <button id="nextBtn" title="Próximo">&#8250;</button>
+</div>
+
+<script>
+const slides = [
+
+// 1. Título
+`
+<div class="kicker">POC · React Native · Multi-repo</div>
+<h1>Arquitetura de Microapps React Native</h1>
+<div class="subtitle">Sistema baseado em <strong style="color:var(--text)">react-native-builder-bob</strong>, multi-repo, com CLI própria de orquestração para desenvolvimento local — sem <code class="inline">node_modules</code> recursivo.</div>
+<div class="badge-row">
+  <span class="badge">1 Main App</span>
+  <span class="badge">N Microapps</span>
+  <span class="badge">N Microfronts</span>
+  <span class="badge">shared-rn</span>
+  <span class="badge">Yarn Workspaces</span>
+  <span class="badge">react-native-builder-bob</span>
+  <span class="badge">Metro monorepo</span>
+</div>
+<footer class="foot">
+  <span>poc-shell · microapp-main-app-rn/rules-project/IMPLEMENTACAO.md</span>
+  <span>Slide 1</span>
+</footer>
+`,
+
+// 2. Visão geral / hierarquia
+`
+<div class="kicker">Visão geral</div>
+<h2>Hierarquia do sistema</h2>
+<div class="tree">
+  <div class="node main">microapp-main-app-rn</div>
+  <div class="connector"></div>
+  <div class="row">
+    <div class="branch">
+      <div class="node app">microapp1-rn</div>
+      <div class="connector"></div>
+      <div class="row">
+        <div class="node front">microfront1-rn</div>
+        <div class="node front">microfront2-rn</div>
+      </div>
+    </div>
+    <div class="branch">
+      <div class="node app">microapp2-rn</div>
+      <div class="connector"></div>
+      <div class="row">
+        <div class="node front">microfront1-rn</div>
+      </div>
+    </div>
+    <div class="branch">
+      <div class="node app">microapp3-rn</div>
+      <div class="connector"></div>
+      <div class="row">
+        <div class="node front">microfront2-rn</div>
+      </div>
+    </div>
+  </div>
+  <div class="connector"></div>
+  <div class="node" style="background: linear-gradient(135deg, #3a1230, #2a0f24); color: var(--accent4); border-color: #55223f;">shared-rn — Card · PrimaryButton · LoadingScreen · theme</div>
+</div>
+<footer class="foot"><span>1 mainapp → N microapps → N microfronts · shared-rn cruza todas as camadas</span><span>Slide 2</span></footer>
+`,
+
+// 3. Papéis / tabela
+`
+<div class="kicker">Papéis dos pacotes</div>
+<h2>Quem é quem no workspace</h2>
+<table class="cmp">
+  <tr><th>Papel</th><th>Relação</th><th>Pastas no POC</th></tr>
+  <tr><td class="k">Main App</td><td class="v">1 → N microapps</td><td class="v"><code class="inline">microapp-main-app-rn</code></td></tr>
+  <tr><td class="k">Microapp</td><td class="v">1 → N microfronts</td><td class="v"><code class="inline">microapp1-rn</code>, <code class="inline">microapp2-rn</code>, <code class="inline">microapp3-rn</code></td></tr>
+  <tr><td class="k">Microfront</td><td class="v">Lib UI / feature</td><td class="v"><code class="inline">microfront1-rn</code>, <code class="inline">microfront2-rn</code></td></tr>
+  <tr><td class="k">Shared</td><td class="v">Componentes/tema usados por N microapps</td><td class="v"><code class="inline">shared-rn</code></td></tr>
+  <tr><td class="k">Docs / OpenSpec</td><td class="v">Contrato e regras</td><td class="v"><code class="inline">microapp-main-app-rn/rules-project/</code></td></tr>
+</table>
+<div class="grid grid-2" style="margin-top:22px">
+  <div class="card">
+    <div class="pill blue">Multi-repo</div>
+    <p>Cada <code class="inline">microapp*-rn</code> / <code class="inline">microfront*-rn</code> vive no <strong>seu próprio repositório git</strong>, publicado independentemente.</p>
+  </div>
+  <div class="card">
+    <div class="pill green">Shell privado</div>
+    <p>A raiz <code class="inline">poc</code> é um shell <code class="inline">"private": true</code> que agrega tudo localmente — nunca é publicada.</p>
+  </div>
+</div>
+<footer class="foot"><span>microapp-main-app-rn/rules-project/rules.md</span><span>Slide 3</span></footer>
+`,
+
+// 4. Estrutura de pastas
+`
+<div class="kicker">Estrutura</div>
+<h2>Organização do repositório</h2>
+<pre><span class="c">poc/</span>
+├── package.json              <span class="c"># workspaces + resolutions</span>
+├── microapps.yaml             <span class="c"># config da CLI de orquestração local</span>
+├── scripts/microapps.js       <span class="c"># CLI de orquestração</span>
+├── .gitmodules
+├── microapp-main-app-rn/      <span class="c"># app RN + metro.config.js</span>
+│   └── rules-project/         <span class="c"># IMPLEMENTACAO.md, rules.md, openspec/</span>
+├── microapp1-rn/              <span class="c"># lib bob (src/ → lib/)</span>
+│   └── example/               <span class="c"># app RN standalone (roda sem o main app)</span>
+├── microapp2-rn/
+│   └── example/
+├── microapp3-rn/
+│   └── example/
+├── microfront1-rn/            <span class="c"># lib bob (src/ → lib/)</span>
+├── microfront2-rn/
+└── shared-rn/                 <span class="c"># lib bob — Card, PrimaryButton, LoadingScreen, theme</span></pre>
+<div class="warn" style="margin-top:18px">Nenhum pacote filho tem <code class="inline">node_modules</code> próprio em desenvolvimento — tudo sobe (hoist) para <code class="inline">poc/node_modules</code>.</div>
+<footer class="foot"><span>Estrutura real do POC</span><span>Slide 4</span></footer>
+`,
+
+// 5. Yarn Workspaces sem node_modules recursivo
+`
+<div class="kicker">Camada: dependências</div>
+<h2>Yarn Workspaces — sem node_modules recursivo</h2>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Regra de ouro</h3>
+    <ul class="bullets">
+      <li><strong>Um único</strong> <code class="inline">yarn</code> na raiz do shell.</li>
+      <li><strong>Proibido</strong> <code class="inline">yarn install</code> dentro de <code class="inline">microapp*</code> / <code class="inline">microfront*</code>.</li>
+      <li>Dependências locais usam range <code class="inline">"*"</code> (Yarn Classic) — cada package vira <strong>symlink</strong> em <code class="inline">node_modules/&lt;nome&gt;</code>.</li>
+      <li><code class="inline">resolutions</code> alinha <code class="inline">react</code> / <code class="inline">react-native</code> para todo o grafo.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>package.json (raiz)</h3>
+    <pre style="margin:0"><span class="k">"workspaces"</span>: [
+  <span class="s">"microapp-main-app-rn"</span>,
+  <span class="s">"microapp1-rn"</span>, <span class="s">"microapp1-rn/example"</span>,
+  <span class="s">"microapp2-rn"</span>, <span class="s">"microapp2-rn/example"</span>,
+  <span class="s">"microapp3-rn"</span>, <span class="s">"microapp3-rn/example"</span>,
+  <span class="s">"microfront1-rn"</span>, <span class="s">"microfront2-rn"</span>,
+  <span class="s">"shared-rn"</span>
+],
+<span class="k">"resolutions"</span>: {
+  <span class="s">"react"</span>: <span class="s">"19.0.0"</span>,
+  <span class="s">"react-native"</span>: <span class="s">"0.78.0"</span>
+}</pre>
+  </div>
+</div>
+<footer class="foot"><span>package.json</span><span>Slide 5</span></footer>
+`,
+
+// 6. react-native-builder-bob
+`
+<div class="kicker">Camada: libs</div>
+<h2>react-native-builder-bob em cada lib</h2>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Scaffold</h3>
+    <pre style="margin:0"><span class="k">npx</span> create-react-native-library@latest microfront1 <span class="k">--local</span></pre>
+    <p style="margin-top:10px">Gera lib pronta pro workspace, já com bob pré-configurado.</p>
+  </div>
+  <div class="card">
+    <h3>Build</h3>
+    <pre style="margin:0"><span class="k">"scripts"</span>: { <span class="k">"prepare"</span>: <span class="s">"bob build"</span> },
+<span class="k">"react-native-builder-bob"</span>: {
+  <span class="k">"source"</span>: <span class="s">"src"</span>, <span class="k">"output"</span>: <span class="s">"lib"</span>,
+  <span class="k">"targets"</span>: [<span class="s">"commonjs"</span>, <span class="s">"module"</span>, <span class="s">"typescript"</span>]
+}</pre>
+  </div>
+</div>
+<table class="cmp" style="margin-top:18px">
+  <tr><th>Pasta / campo</th><th>Uso</th></tr>
+  <tr><td class="k">src/</td><td class="v">Código-fonte — entrada <code class="inline">source</code> / <code class="inline">react-native</code></td></tr>
+  <tr><td class="k">lib/</td><td class="v">Output gerado por <code class="inline">bob build</code> — não editar à mão</td></tr>
+  <tr><td class="k">peerDependencies</td><td class="v"><code class="inline">react</code>, <code class="inline">react-native</code> (evita duplicar no grafo)</td></tr>
+</table>
+<footer class="foot"><span>bob &gt;= 0.43 · commonjs + module + typescript</span><span>Slide 6</span></footer>
+`,
+
+// 7. shared-rn — componentes compartilhados
+`
+<div class="kicker">Camada: libs</div>
+<h2>shared-rn — componentes e tema compartilhados</h2>
+<p class="subtitle" style="margin-bottom:14px">Mesma engrenagem do <code class="inline">react-native-builder-bob</code>, mas em vez de uma feature, expõe <strong style="color:var(--text)">UI kit mínimo</strong> reaproveitado por microapp1-rn, microapp2-rn, microapp3-rn e por todos os examples standalone.</p>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Exports (src/index.tsx)</h3>
+    <pre style="margin:0"><span class="k">export</span> { LoadingScreen } <span class="k">from</span> <span class="s">'./LoadingScreen'</span>;
+<span class="k">export</span> { Card } <span class="k">from</span> <span class="s">'./Card'</span>;
+<span class="k">export</span> { PrimaryButton } <span class="k">from</span> <span class="s">'./PrimaryButton'</span>;
+<span class="k">export</span> { theme, colors, spacing, radius } <span class="k">from</span> <span class="s">'./theme'</span>;</pre>
+  </div>
+  <div class="card">
+    <h3>Quem consome</h3>
+    <table class="cmp" style="font-size:13.5px">
+      <tr><th>Consumidor</th><th>Uso</th></tr>
+      <tr><td class="k">microapp1/2/3-rn</td><td class="v"><code class="inline">Card</code> como wrapper do Screen</td></tr>
+      <tr><td class="k">microappN-rn/example</td><td class="v"><code class="inline">LoadingScreen</code>, <code class="inline">Card</code>, <code class="inline">PrimaryButton</code></td></tr>
+    </table>
+  </div>
+</div>
+<div class="ok" style="margin-top:16px">Dependência declarada como <code class="inline">"shared-rn": "git+https://github.com/zupiti/shared-rn.git#main"</code> — resolvida pela Git ref configurada, igual aos microfronts. Zero duplicação de UI entre pacotes.</div>
+<footer class="foot"><span>shared-rn/src</span><span>Slide 7</span></footer>
+`,
+
+// 8. Metro monorepo config
+`
+<div class="kicker">Camada: bundler</div>
+<h2>Metro com react-native-monorepo-config</h2>
+<div class="warn">bob &gt;= 0.43 <strong>removeu</strong> <code class="inline">react-native-builder-bob/metro-config</code>. Use <code class="inline">react-native-monorepo-config</code>.</div>
+<pre style="margin-top:16px"><span class="k">const</span> path = require(<span class="s">'path'</span>);
+<span class="k">const</span> { getDefaultConfig } = require(<span class="s">'@react-native/metro-config'</span>);
+<span class="k">const</span> { withMetroConfig } = require(<span class="s">'react-native-monorepo-config'</span>);
+
+module.exports = withMetroConfig(getDefaultConfig(__dirname), {
+  root: path.resolve(__dirname, <span class="s">'..'</span>),  <span class="c">// raiz do shell poc</span>
+  dirname: __dirname,
+  workspaces: [
+    <span class="s">'microapp1-rn'</span>, <span class="s">'microapp2-rn'</span>, <span class="s">'microapp3-rn'</span>,
+    <span class="s">'microfront1-rn'</span>, <span class="s">'microfront2-rn'</span>,
+    <span class="s">'shared-rn'</span>,
+  ],
+});</pre>
+<footer class="foot"><span>microapp-main-app-rn/metro.config.js</span><span>Slide 8</span></footer>
+`,
+
+// 9. Metodologia de orquestração local
+`
+<div class="kicker">Metodologia</div>
+<h2>CLI própria: apontamento local entre pacotes</h2>
+<table class="cmp">
+  <tr><th>Necessidade</th><th>Neste POC</th></tr>
+  <tr><td class="k">Config central do grafo</td><td class="v"><code class="inline">microapps.yaml</code></td></tr>
+  <tr><td class="k">Setup inicial</td><td class="v"><code class="inline">yarn bootstrap</code></td></tr>
+  <tr><td class="k">Apontar refs internas</td><td class="v"><code class="inline">yarn point-local</code> (grafo → Git refs configuradas)</td></tr>
+  <tr><td class="k">Listar pacotes</td><td class="v"><code class="inline">yarn microapps list --scope …</code></td></tr>
+  <tr><td class="k">Rodar script em N pacotes</td><td class="v"><code class="inline">yarn microapps run &lt;script&gt; --scope …</code></td></tr>
+  <tr><td class="k">Rodar o app</td><td class="v"><code class="inline">yarn start</code></td></tr>
+</table>
+<div class="card" style="margin-top:18px">
+  <h3>microapps.yaml — grafo local</h3>
+  <pre style="margin:0"><span class="k">graph</span>:
+  microapp-main-app-rn: [microapp1-rn, microapp2-rn, microapp3-rn]
+  microapp1-rn:         [microfront1-rn, microfront2-rn]
+  microapp2-rn:         [microfront1-rn]
+  microapp3-rn:         [microfront2-rn]</pre>
+</div>
+<footer class="foot"><span>microapps.yaml · scripts/microapps.js</span><span>Slide 9</span></footer>
+`,
+
+// 10. Como rodar - bootstrap e libs
+`
+<div class="kicker">Como rodar · Camada 1</div>
+<h2>Bootstrap do shell + build das libs</h2>
+<div class="flow-steps">
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div><div class="t">git submodule update --init --recursive</div><div class="d">Traz microapps/microfronts (repos independentes) se registrados como submodule.</div></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div><div class="t">yarn bootstrap</div><div class="d"><code class="inline">yarn install</code> (só na raiz) + <code class="inline">point-local</code> + <code class="inline">clean</code> + <code class="inline">validate</code>.</div></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div><div class="t">yarn build:libs</div><div class="d">Roda <code class="inline">bob build</code> em todos microapps/microfronts (<code class="inline">--scope libs</code>).</div></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div><div class="t">yarn validate</div><div class="d">Confere symlinks em <code class="inline">node_modules/&lt;pkg&gt;</code> e ausência de <code class="inline">node_modules</code> aninhado com pacotes reais.</div></div>
+  </div>
+</div>
+<div class="ok" style="margin-top:16px">Editar <code class="inline">src/</code> de qualquer lib recarrega no mainapp via symlink — sem <code class="inline">yarn</code> dentro da pasta da lib.</div>
+<footer class="foot"><span>Camada libs (microapp*/microfront*/shared-rn)</span><span>Slide 10</span></footer>
+`,
+
+// 11. Como rodar - mainapp
+`
+<div class="kicker">Como rodar · Camada 2</div>
+<h2>Subir o Main App (Metro + device/emulador)</h2>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>1. Metro (JS bundler)</h3>
+    <pre style="margin:0"><span class="k">yarn</span> start
+<span class="c"># equivalente:</span>
+<span class="k">yarn</span> microapps start</pre>
+    <p style="margin-top:8px">Sobe o dev server do <code class="inline">mainApp</code> (<code class="inline">microapp-main-app-rn</code>) na porta 8081.</p>
+  </div>
+  <div class="card">
+    <h3>2. Rodar no device/emulador</h3>
+    <pre style="margin:0"><span class="k">yarn</span> android
+<span class="c"># ou</span>
+<span class="k">yarn</span> ios</pre>
+    <p style="margin-top:8px">Builda o app nativo (Gradle / Xcode) e instala no emulador/simulador conectado.</p>
+  </div>
+</div>
+<div class="card" style="margin-top:18px">
+  <h3>Resultado</h3>
+  <p>O app final renderiza <strong style="color:var(--text)">Microapp 1 → 2 → 3</strong>, cada um exibindo seus respectivos <strong style="color:var(--text)">microfront1-rn / microfront2-rn</strong>, tudo resolvido localmente via workspace — sem publish.</p>
+</div>
+<footer class="foot"><span>microapp-main-app-rn</span><span>Slide 11</span></footer>
+`,
+
+// 12. Como rodar - examples standalone
+`
+<div class="kicker">Como rodar · Camada 3</div>
+<h2>Example apps: navegação, loading e shared-rn</h2>
+<p class="subtitle" style="margin-bottom:14px">Além do main app, <strong style="color:var(--text)">cada microapp*-rn tem seu próprio <code class="inline">example/</code></strong> — um app RN completo (JS + Android + iOS), com navegação própria, que roda sem depender de <code class="inline">microapp-main-app-rn</code>.</p>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Fluxo de navegação (@react-navigation/native-stack)</h3>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div><div class="t">Loading</div><div class="d"><code class="inline">shared-rn</code>&nbsp;<code class="inline">LoadingScreen</code> por ~900ms, depois <code class="inline">navigation.replace('Home')</code>.</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div><div class="t">Home</div><div class="d">Card de entrada do microapp (botão "Abrir microappN-rn") + lista de "Exemplos" em <code class="inline">Card</code>/<code class="inline">PrimaryButton</code>.</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div><div class="t">Microapp</div><div class="d"><code class="inline">navigation.navigate('Microapp')</code> — tela dedicada que renderiza o <code class="inline">MicroappNScreen</code> real (com seus microfronts), com header e voltar nativos do stack.</div></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div><div class="t">ExampleDetail</div><div class="d">Detalhe do item tocado a partir da Home, com <code class="inline">PrimaryButton</code> "Voltar".</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Estrutura</h3>
+    <pre style="margin:0">microapp1-rn/example/
+├── App.tsx                    <span class="c"># SafeAreaProvider + AppNavigator</span>
+├── metro.config.js            <span class="c"># root = ../.. (raiz poc)</span>
+└── src/
+    ├── navigation/AppNavigator.tsx   <span class="c"># Loading, Home, Microapp, ExampleDetail</span>
+    ├── screens/LoadingRoute.tsx
+    ├── screens/HomeRoute.tsx
+    ├── screens/MicroappRoute.tsx     <span class="c"># <MicroappNScreen /> em tela própria</span>
+    └── screens/ExampleDetailRoute.tsx</pre>
+    <p style="margin-top:10px"><span class="k" style="color:var(--accent)">yarn</span> example:microapp1 <span class="c">(+ :android / :ios)</span> — mesmo padrão para microapp2/3.</p>
+  </div>
+</div>
+<div class="ok" style="margin-top:16px">Grafo: <code class="inline">microappN-rn/example → microappN-rn, shared-rn</code>. Deps nativas: <code class="inline">react-native-screens@4.11.1</code> + <code class="inline">react-native-safe-area-context@5.3.0</code> (linha 5.x, compatível com Fabric + RN 0.78). Fluxo completo validado no emulador Android (Loading → Home → Microapp → voltar → ExampleDetail).</div>
+<footer class="foot"><span>microappN-rn/example</span><span>Slide 12</span></footer>
+`,
+
+// 13. Troubleshooting nativo
+`
+<div class="kicker">Atenção · builds nativos</div>
+<h2>Gradle/Xcode e o node_modules hoisted</h2>
+<p class="subtitle" style="margin-bottom:14px">Metro e Node resolvem <code class="inline">node_modules</code> subindo diretórios automaticamente. Ferramentas nativas, não.</p>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Android (Gradle)</h3>
+    <p><code class="inline">android/settings.gradle</code> e <code class="inline">android/app/build.gradle</code> usam paths relativos fixos. Como <code class="inline">node_modules</code> está um nível acima (hoisted na raiz do shell), foi preciso ajustar:</p>
+    <pre style="margin:0">reactNativeDir = file(<span class="s">"../../../node_modules/react-native"</span>)
+codegenDir     = file(<span class="s">"../../../node_modules/@react-native/codegen"</span>)
+cliFile        = file(<span class="s">"../../../node_modules/react-native/cli.js"</span>)</pre>
+  </div>
+  <div class="card">
+    <h3>iOS (CocoaPods)</h3>
+    <p>O <code class="inline">Podfile</code> já usa <code class="inline">require.resolve</code> via Node — resolve o hoisting automaticamente, sem ajuste manual.</p>
+    <div class="warn" style="margin-top:10px">Build pode falhar em Xcode muito recente por incompatibilidade de toolchain (ex.: <code class="inline">fmt</code>/<code class="inline">glog</code> + C++20) — não relacionado ao workspace.</div>
+  </div>
+</div>
+<footer class="foot"><span>Isso não quebra a regra de node_modules único — só aponta o path correto</span><span>Slide 13</span></footer>
+`,
+
+// 14. Checklist final
+`
+<div class="kicker">Recapitulando</div>
+<h2>Checklist da arquitetura</h2>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Arquitetura</h3>
+    <ul class="bullets">
+      <li>Hierarquia 1 mainapp → N microapps → N microfronts</li>
+      <li>Cada pacote em repositório git próprio (multi-repo)</li>
+      <li>Shell privado agrega tudo via Yarn Workspaces</li>
+      <li>Specs OpenSpec como contrato (<code class="inline">microapp-main-app-rn/rules-project/openspec</code>)</li>
+      <li>Cada microapp tem <code class="inline">example/</code> standalone (roda sem o main app)</li>
+      <li><code class="inline">shared-rn</code> compartilha UI/tema entre microapps e examples</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Operação</h3>
+    <ul class="bullets">
+      <li><code class="inline">yarn bootstrap</code> / <code class="inline">yarn validate</code> OK</li>
+      <li>Um único <code class="inline">yarn</code> na raiz — zero <code class="inline">node_modules</code> recursivo</li>
+      <li>Libs com bob (<code class="inline">prepare: bob build</code>), incluindo <code class="inline">shared-rn</code></li>
+      <li>Metro com <code class="inline">react-native-monorepo-config</code></li>
+      <li><code class="inline">yarn start</code> → <code class="inline">yarn android</code> / <code class="inline">yarn ios</code></li>
+      <li><code class="inline">yarn example:microapp1|2|3</code> (+ <code class="inline">:android</code>/<code class="inline">:ios</code>) com navegação Loading → Home → Microapp → ExampleDetail</li>
+    </ul>
+  </div>
+</div>
+<div class="ok" style="margin-top:20px">Metodologia validada de ponta a ponta: build das 6 libs (incluindo <code class="inline">shared-rn</code>), bundle Metro (HTTP 200) do main app e dos 3 examples — todos resolvendo <code class="inline">shared-rn</code>, navegação e microfronts sem erro.</div>
+<footer class="foot"><span>poc-shell</span><span>Slide 14</span></footer>
+`
+];
+
+let current = 0;
+const deck = document.getElementById('deck');
+
+slides.forEach((html, i) => {
+  const el = document.createElement('div');
+  el.className = 'slide' + (i === 0 ? ' active' : '');
+  el.innerHTML = html;
+  deck.appendChild(el);
+});
+
+const slideEls = document.querySelectorAll('.slide');
+const counter = document.getElementById('counter');
+const progress = document.getElementById('progress');
+
+function render() {
+  slideEls.forEach((el, i) => el.classList.toggle('active', i === current));
+  counter.textContent = (current + 1) + ' / ' + slideEls.length;
+  progress.style.width = ((current + 1) / slideEls.length * 100) + '%';
+}
+
+function go(delta) {
+  current = Math.min(Math.max(current + delta, 0), slideEls.length - 1);
+  render();
+}
+
+document.getElementById('prevBtn').addEventListener('click', () => go(-1));
+document.getElementById('nextBtn').addEventListener('click', () => go(1));
+
+document.addEventListener('keydown', (e) => {
+  if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { go(1); }
+  if (['ArrowLeft', 'PageUp'].includes(e.key)) { go(-1); }
+  if (e.key === 'Home') { current = 0; render(); }
+  if (e.key === 'End') { current = slideEls.length - 1; render(); }
+});
+
+deck.addEventListener('click', (e) => {
+  const rect = deck.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if (x > rect.width * 0.85) go(1);
+  else if (x < rect.width * 0.15) go(-1);
+});
+
+render();
+</script>
+</body>
+</html>

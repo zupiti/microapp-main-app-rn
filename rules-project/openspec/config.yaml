@@ -1,0 +1,49 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  Workspace shell `poc`: agrega o app React Native e libs microapp/microfront
+  em repositórios git separados via git submodules + Yarn Workspaces.
+
+  Hierarquia obrigatória (pastas reais do POC):
+  - `microapp-main-app-rn` (1) → N `microapp*-rn`
+  - cada `microapp*-rn` → N `microfront*-rn`
+  - Docs/OpenSpec ficam em `microapp-main-app-rn/rules-project/`
+
+  Documentação operacional:
+  - `microapp-main-app-rn/rules-project/IMPLEMENTACAO.md` — passo a passo de implementação (bob, workspaces, Metro, publish).
+  - `microapp-main-app-rn/rules-project/rules.md` — convenções obrigatórias de desenvolvimento.
+
+  Stack:
+  - React Native 0.78 no mainapp
+  - react-native-builder-bob nas libs (`create-react-native-library --local` + package bob completo)
+  - Yarn Workspaces Classic na raiz (único `yarn install`; refs internas via Git refs)
+  - Metro via `react-native-monorepo-config` (`withMetroConfig`)
+  - bob >= 0.43 NÃO usa `react-native-builder-bob/metro-config`
+
+  Desenvolvimento:
+  - Metodologia Melos-like: `microapps.yaml` + `scripts/microapps.js`
+  - Setup: `yarn bootstrap` (submodules + yarn raiz + point-local + validate)
+  - Point-local: `yarn point-local` reescreve o grafo para as refs configuradas em `microapps.yaml`
+  - Proibido `yarn`/`npm install` dentro de cada microapp/microfront no dia a dia
+  - Um único `node_modules` na raiz do shell
+  - `yarn start` / `yarn microapps start` sobe o Metro do mainApp
+
+  OpenSpec canônico: `openspec/specs/` (capabilities base do sistema microapps).
+
+# Per-artifact rules (optional)
+rules:
+  proposal:
+    - "Na secção **Impact**, mencionar pacotes afetados (`microapp-main-app`, `microapp*`, `microfront*`) e se a mudança toca workspaces, Metro, bob ou submodules."
+    - "Na secção **Impact**, mencionar validação: `yarn` só na raiz e smoke `yarn start` no mainapp quando a mudança afetar resolução de módulos."
+  design:
+    - "Incluir bullets sobre hoisting / `workspace:*` / ausência de node_modules recursivo quando a change mexer em dependências."
+    - "Incluir bullets Metro (`react-native-monorepo-config`) quando a change adicionar ou mover packages workspace."
+  tasks:
+    - "Incluir checkboxes para atualizar `package.json` da raiz (`workspaces`) quando houver novo pacote."
+    - "Incluir checkboxes para `metro.config.js` quando a lista de workspaces locais mudar."
+    - "Incluir checkbox de verificação: sem `node_modules` dentro dos packages após `yarn` na raiz."
+    - "Não fechar a change sem alinhar `IMPLEMENTACAO.md` / `rules.md` se o contrato arquitetural mudar."
+  specs:
+    - "Redigir cenários com critérios **THEN** mensuráveis (comandos, paths, ausência de node_modules aninhado, dependências workspace)."

@@ -1,97 +1,129 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Microapp Main App RN
 
-# Getting Started
+Main app React Native da POC de microapps. Este repo centraliza a orquestracao do shell: `package.json`, `microapps.yaml`, `scripts/`, docs em `rules-project/` e o app que consome os microapps via Git refs.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Comecar Apenas Com O Main App
 
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+Se voce deletou todos os microapps/microfronts locais e ficou apenas com `microapp-main-app-rn`, use o setup local para baixar tudo novamente a partir das Git refs de `microapps.yaml`:
 
 ```sh
-# Using npm
-npm start
+cd microapp-main-app-rn
+yarn setup:microapps:local
+```
 
-# OR using Yarn
+Esse comando clona os repos ausentes ao lado do main app, troca o grafo para `link:` local, roda `yarn install`, limpa `node_modules` aninhados e valida os links.
+
+Depois rode:
+
+```sh
 yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
 yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## Requisitos
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+- Node >= 18
+- Yarn Classic 1.x
+- Ambiente React Native configurado para iOS e/ou Android
+- CocoaPods para iOS
 
-## Step 3: Modify your app
+## Instalar
 
-Now that you have successfully run the app, let's make changes!
+Rode os comandos a partir de `microapp-main-app-rn`:
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+```sh
+yarn install
+```
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+Para iOS:
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+```sh
+bundle install
+cd ios
+bundle exec pod install
+cd ..
+```
 
-## Congratulations! :tada:
+## Rodar Com Git Refs
 
-You've successfully run and modified your React Native App. :partying_face:
+O estado padrao usa Git refs declaradas em `package.json` e `microapps.yaml`.
 
-### Now what?
+```sh
+yarn point-local
+yarn validate
+```
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+Subir Metro:
 
-# Troubleshooting
+```sh
+yarn start
+```
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+Rodar iOS:
 
-# Learn More
+```sh
+yarn ios
+```
 
-To learn more about React Native, take a look at the following resources:
+Rodar Android:
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+```sh
+yarn android
+```
+
+## Rodar Localmente
+
+Para desenvolver todos os microapps locais do shell:
+
+```sh
+yarn setup:microapps:local
+yarn start
+```
+
+Esse setup troca o grafo para dependencias locais, roda `yarn install`, limpa `node_modules` aninhados e valida os links.
+
+## Scripts Uteis
+
+```sh
+yarn microapps list
+yarn validate
+yarn clean
+yarn build:libs
+yarn test
+yarn test:coverage
+```
+
+Examples standalone:
+
+```sh
+yarn example:microapp1
+yarn example:microapp2
+yarn example:microapp3
+```
+
+## Limpar Build
+
+iOS:
+
+```sh
+rm -rf ios/build
+rm -rf ~/Library/Developer/Xcode/DerivedData/MicroappMainApp-*
+```
+
+Android:
+
+```sh
+rm -rf android/build android/app/build
+```
+
+Metro/cache:
+
+```sh
+rm -rf "$TMPDIR/metro-*" "$TMPDIR/react-*"
+```
+
+## Arquivos De Orquestracao
+
+- `microapps.yaml`: grafo dos microapps, microfronts e refs Git.
+- `scripts/microapps.js`: CLI de bootstrap, validacao, limpeza e execucao por scope.
+- `rules-project/`: regras, OpenSpec e documentacao da arquitetura.
