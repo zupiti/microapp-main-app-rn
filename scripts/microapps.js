@@ -341,8 +341,11 @@ function commandValidate(config, dependencyMode = config.dependencyMode) {
   for (const packageDir of config.packages) {
     const {data} = readPackageJson(packageDir);
     const linkPath = path.join(rootNodeModules, data.name);
-    if (fs.existsSync(rootNodeModules) && !fs.existsSync(linkPath)) {
+    if (packageDir !== config.mainApp && fs.existsSync(rootNodeModules) && !fs.existsSync(linkPath)) {
       console.warn(`  WARN missing package link: node_modules/${data.name}`);
+    }
+    if (packageDir === config.mainApp) {
+      continue;
     }
     const nested = path.join(ROOT, packageDir, 'node_modules');
     if (fs.existsSync(nested)) {
@@ -398,6 +401,9 @@ function commandSetupLocal(config) {
 
 function commandClean(config) {
   for (const packageDir of config.packages) {
+    if (packageDir === config.mainApp) {
+      continue;
+    }
     const nested = path.join(ROOT, packageDir, 'node_modules');
     if (fs.existsSync(nested)) {
       fs.rmSync(nested, {recursive: true, force: true});
