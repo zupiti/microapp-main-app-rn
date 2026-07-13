@@ -4,6 +4,7 @@ const {withMetroConfig} = require('react-native-monorepo-config');
 
 const dirname = __dirname;
 const shellRoot = path.resolve(dirname, '..');
+const appNodeModules = path.resolve(dirname, 'node_modules');
 const workspaces = [
   '../microapp1-rn',
   '../microapp2-rn',
@@ -30,5 +31,16 @@ config.watchFolders = Array.from(
     ...workspaces.map(workspace => path.resolve(dirname, workspace)),
   ]),
 );
+
+config.resolver = {
+  ...(config.resolver || {}),
+  disableHierarchicalLookup: true,
+  nodeModulesPaths: [appNodeModules],
+  extraNodeModules: {
+    ...((config.resolver && config.resolver.extraNodeModules) || {}),
+    react: path.join(appNodeModules, 'react'),
+    'react-native': path.join(appNodeModules, 'react-native'),
+  },
+};
 
 module.exports = config;
