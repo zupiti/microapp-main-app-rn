@@ -5,7 +5,13 @@
   "resolutions": {
     "react": "19.0.0",
     "react-native": "0.78.0",
-    "@types/react": "^19.0.0"
+    "@types/react": "^19.0.0",
+    "microapp1-rn": "git+https://github.com/zupiti/microapp1-rn.git#main",
+    "microapp2-rn": "git+https://github.com/zupiti/microapp2-rn.git#main",
+    "microapp3-rn": "git+https://github.com/zupiti/microapp3-rn.git#main",
+    "microfront1-rn": "git+https://github.com/zupiti/microfront1-rn.git#main",
+    "microfront2-rn": "git+https://github.com/zupiti/microfront2-rn.git#main",
+    "shared-rn": "git+https://github.com/zupiti/shared-rn.git#main"
   },
   "scripts": {
     "android": "react-native run-android",
@@ -35,10 +41,10 @@
   "dependencies": {
     "react": "19.0.0",
     "react-native": "0.78.0",
-    "microapp1-rn": "link:../microapp1-rn",
-    "microapp2-rn": "link:../microapp2-rn",
-    "microapp3-rn": "link:../microapp3-rn",
-    "shared-rn": "link:../shared-rn",
+    "microapp1-rn": "git+https://github.com/zupiti/microapp1-rn.git#main",
+    "microapp2-rn": "git+https://github.com/zupiti/microapp2-rn.git#main",
+    "microapp3-rn": "git+https://github.com/zupiti/microapp3-rn.git#main",
+    "shared-rn": "git+https://github.com/zupiti/shared-rn.git#main",
     "@react-navigation/native": "^7.3.8",
     "@react-navigation/native-stack": "^7.17.10",
     "react-native-screens": "4.11.1",
