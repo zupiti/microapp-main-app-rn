@@ -231,6 +231,46 @@ microfront1/
 └── tsconfig.json
 ```
 
+### 6.2.1 Arquitetura interna obrigatória de cada microapp
+
+Cada `microapp*-rn` segue camadas com dependência unidirecional (referência: módulo de eleições):
+
+```text
+entities → services → repositories → hooks → ui/screens → ui/components
+```
+
+```text
+microappN-rn/
+├── .eslintrc.js              # restringe imports entre camadas
+├── package.json
+├── src/
+│   ├── entities/             # tipos; export via index.ts (barrel)
+│   ├── services/             # transporte cru (HTTP/mock)
+│   ├── repositories/         # normalização + orquestra service
+│   ├── hooks/                # estado + efeitos (só repository)
+│   ├── utils/                # funções puras
+│   ├── ui/
+│   │   ├── screens/
+│   │   ├── components/
+│   │   ├── styles/
+│   │   └── navigation/       # opcional
+│   └── index.tsx             # API pública
+└── lib/
+```
+
+**Diretrizes de hooks**
+
+| Regra | Detalhe |
+|---|---|
+| Uma responsabilidade | `use-<domínio>-<ação>.ts` (ex.: `use-pedidos-lista`) |
+| Sem service direto | hooks → repositories → services |
+| Efeitos na camada certa | `useEffect` de dados no hook; screens não fazem fetch |
+| Race async | flag `ativo` ou `AbortController` |
+| Hub compartilhado | Context Provider quando N screens usam o mesmo estado composto |
+| Barrel de entities | importar de `../entities`, nunca `*_entity.ts` |
+
+Exemplos no POC: pedidos (`microapp1-rn`), métricas (`microapp2-rn`), contador (`microapp3-rn`).
+
 ### 6.3 `package.json` da lib (exemplo — microfront)
 
 ```json
@@ -526,6 +566,8 @@ Padrão de relação:
 - [ ] (Yarn Berry) `.yarnrc.yml` com `nodeLinker: node-modules` e `nmHoistingLimits: workspaces`
 - [ ] Scaffold de cada lib com `create-react-native-library@latest <nome> --local`
 - [ ] `prepare: "bob build"` + targets bob em cada lib
+- [ ] Microapps com camadas `entities/services/repositories/hooks/utils/ui` + `.eslintrc.js`
+- [ ] Hooks só chamam repositories; screens sem `useEffect` de dados
 - [ ] Mainapp depende de microapps via `workspace:*`
 - [ ] Cada microapp depende dos seus microfronts via `workspace:*`
 - [ ] `resolutions` alinhando `react` e `react-native`

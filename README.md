@@ -127,3 +127,25 @@ rm -rf "$TMPDIR/metro-*" "$TMPDIR/react-*"
 - `microapps.yaml`: grafo dos microapps, microfronts e refs Git.
 - `scripts/microapps.js`: CLI de bootstrap, validacao, limpeza e execucao por scope.
 - `rules-project/`: regras, OpenSpec e documentacao da arquitetura.
+
+## Arquitetura Dos Microapps
+
+Cada `microapp*-rn` segue camadas com dependencia unidirecional:
+
+```text
+entities → services → repositories → hooks → ui/screens → ui/components
+```
+
+| Package | Dominio de exemplo |
+|---------|--------------------|
+| `microapp1-rn` | pedidos |
+| `microapp2-rn` | metricas |
+| `microapp3-rn` | contador |
+
+**Hooks:** uma responsabilidade; chamam so `repositories/`; screens nao fazem `useEffect` de dados. Fronteiras em cada `.eslintrc.js`.
+
+Documentacao canonica:
+
+- `rules-project/rules.md` — secao **Arquitetura interna do microapp**
+- `rules-project/IMPLEMENTACAO.md` — §6.2.1
+- README de cada `microapp*-rn`

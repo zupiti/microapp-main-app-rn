@@ -59,11 +59,59 @@ No mainapp: UI e orquestração apenas; regras de feature ficam no microapp/micr
 
 ---
 
+## Arquitetura interna do microapp (obrigatório)
+
+Cada `microapp*-rn` MUST organizar o `src/` em camadas (padrão do módulo de referência de eleições):
+
+```text
+src/
+├── entities/          # tipos de domínio (somente types; barrel em index.ts)
+├── services/          # transporte HTTP/mock cru
+├── repositories/      # orquestra services + normaliza payloads/erros
+├── hooks/             # estado + efeitos; chama só repositories
+├── utils/             # helpers puros (sem React)
+├── ui/
+│   ├── screens/       # telas finas (sem useEffect de dados)
+│   ├── components/    # apresentação
+│   ├── styles/        # StyleSheet / styled
+│   └── navigation/    # opcional — stacks/tipos de rota
+├── index.tsx          # API pública (exporta screens)
+└── .eslintrc.js       # fronteiras de import por camada
+```
+
+**Fluxo de dependência (só à esquerda):**
+
+`entities → services → repositories → hooks → ui/screens → ui/components`
+
+| Camada | Pode | Não pode |
+|--------|------|----------|
+| `entities/` | tipos puros | React, RN, outras camadas |
+| `services/` | HTTP/transport + tipos de entities | repositories, hooks, ui, utils |
+| `repositories/` | services + utils + entities | hooks, ui |
+| `hooks/` | repositories + utils + entities | services, ui/screens, ui/components, ui/styles |
+| `utils/` | entities | React, services, repositories, hooks, ui |
+| `ui/screens/` | hooks + components + styles | services, repositories, `useEffect` de dados |
+| `ui/components/` | props + styles + entities/utils | services, repositories |
+
+### Diretrizes de hooks
+
+1. Uma responsabilidade por hook: `use-<domínio>-<responsabilidade>.ts`.
+2. Chamar **apenas** `repositories/` — nunca `services/` direto.
+3. Donos de loading/erro/dados e de `useEffect` de fetch/mutação.
+4. Screens só consomem o retorno do hook e passam props aos components.
+5. Guardar race async (`ativo` / `AbortController`) em efeitos com id/unmount.
+6. Estado compartilhado entre várias screens: Context Provider no padrão hub (compor hooks).
+7. Entidades sempre via barrel `../entities`, nunca `*_entity.ts` individual.
+8. Fronteiras reforçadas pelo `.eslintrc.js` de cada microapp.
+
+Exemplos no POC: `microapp1-rn` (pedidos), `microapp2-rn` (métricas), `microapp3-rn` (contador).
+
+---
+
 ## Nomenclatura
 
 - **Pastas e package name**: iguais (`microapp1-rn`, `microfront2-rn`, `microapp-main-app-rn`).
-
-- **Arquivos TS/JS**: `camelCase` ou `PascalCase` para componentes; preferir consistência com o scaffold bob.
+- **Camadas do microapp**: `entities/*_entity.ts`, hooks `use-*.ts`, screens/components em `kebab-case`.
 - **Classes / componentes**: `PascalCase`.
 - **Variáveis / funções**: `camelCase`.
 - **Booleanos**: prefixo `is` / `has` / `can`.
@@ -174,6 +222,8 @@ yarn start                                # Metro do mainApp
 ## Checklist rápido (agente / dev)
 
 - [ ] Hierarquia 1 mainapp → N microapps → N microfronts respeitada
+- [ ] Microapps com camadas `entities/services/repositories/hooks/utils/ui` + `.eslintrc.js`
+- [ ] Hooks só falam com repositories; screens sem `useEffect` de dados
 - [ ] `yarn bootstrap` / `yarn validate` OK
 - [ ] Um `yarn` na raiz; sem `node_modules` recursivo
 - [ ] Libs com bob (`prepare: bob build`)

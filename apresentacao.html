@@ -110,6 +110,7 @@
   .pill.green { background: rgba(126,224,195,.14); color: var(--accent2); }
   .pill.orange { background: rgba(255,180,84,.14); color: var(--accent3); }
   .pill.pink { background: rgba(255,111,145,.14); color: var(--accent4); }
+  .pill.red { background: rgba(255,111,145,.14); color: var(--accent4); }
 
   code, pre, .mono {
     font-family: var(--mono);
@@ -288,7 +289,7 @@
 
 <div id="nav">
   <button id="prevBtn" title="Anterior">&#8249;</button>
-  <span id="counter">1 / 14</span>
+  <span id="counter">1 / 17</span>
   <button id="nextBtn" title="Próximo">&#8250;</button>
 </div>
 
@@ -305,6 +306,7 @@ const slides = [
   <span class="badge">N Microapps</span>
   <span class="badge">N Microfronts</span>
   <span class="badge">shared-rn</span>
+  <span class="badge">HTTP core + interceptors</span>
   <span class="badge">Yarn Workspaces</span>
   <span class="badge">react-native-builder-bob</span>
   <span class="badge">Metro monorepo</span>
@@ -347,7 +349,7 @@ const slides = [
     </div>
   </div>
   <div class="connector"></div>
-  <div class="node" style="background: linear-gradient(135deg, #3a1230, #2a0f24); color: var(--accent4); border-color: #55223f;">shared-rn — Card · PrimaryButton · LoadingScreen · theme</div>
+  <div class="node" style="background: linear-gradient(135deg, #3a1230, #2a0f24); color: var(--accent4); border-color: #55223f;">shared-rn — UI kit · theme · HTTP core (interceptors)</div>
 </div>
 <footer class="foot"><span>1 mainapp → N microapps → N microfronts · shared-rn cruza todas as camadas</span><span>Slide 2</span></footer>
 `,
@@ -462,33 +464,160 @@ const slides = [
 <footer class="foot"><span>bob &gt;= 0.43 · commonjs + module + typescript</span><span>Slide 6</span></footer>
 `,
 
-// 7. shared-rn — componentes compartilhados
+// 7. Arquitetura interna do microapp
+`
+<div class="kicker">Camada: feature module</div>
+<h2>Arquitetura interna de cada microapp</h2>
+<p class="subtitle" style="margin-bottom:14px">Padrão obrigatório em <code class="inline">microapp1-rn</code>, <code class="inline">microapp2-rn</code> e <code class="inline">microapp3-rn</code> — alinhado ao módulo de referência de eleições.</p>
+<div class="tree">
+  <div class="row">
+    <div class="node" style="background:linear-gradient(135deg,#12223a,#0f1a2a);color:var(--accent2);border-color:#1e3a5c;">entities</div>
+    <div class="node" style="background:linear-gradient(135deg,#122a22,#0f1f1a);color:var(--accent3);border-color:#1e4a3a;">services</div>
+    <div class="node" style="background:linear-gradient(135deg,#2a2612,#1f1c0f);color:#e8d48b;border-color:#4a4520;">repositories</div>
+    <div class="node app">hooks</div>
+    <div class="node front">ui/screens</div>
+    <div class="node front">ui/components</div>
+  </div>
+</div>
+<div class="ok" style="margin-top:14px">Dependência <strong>só à esquerda</strong>: <code class="inline">entities → services → repositories → hooks → ui/screens → ui/components</code></div>
+<div class="grid grid-2" style="margin-top:16px">
+  <div class="card">
+    <h3>Estrutura src/</h3>
+    <pre style="margin:0">src/
+├── entities/          <span class="c"># tipos; barrel index.ts</span>
+├── services/          <span class="c"># HTTP via shared-rn httpClient</span>
+├── repositories/      <span class="c"># normaliza + orquestra</span>
+├── hooks/             <span class="c"># estado + efeitos</span>
+├── utils/             <span class="c"># helpers puros</span>
+├── ui/
+│   ├── screens/
+│   ├── components/
+│   └── styles/
+└── index.tsx          <span class="c"># API pública</span></pre>
+  </div>
+  <div class="card">
+    <h3>Exemplos no POC</h3>
+    <table class="cmp" style="font-size:13.5px">
+      <tr><th>Package</th><th>Domínio</th></tr>
+      <tr><td class="k">microapp1-rn</td><td class="v">pedidos</td></tr>
+      <tr><td class="k">microapp2-rn</td><td class="v">métricas</td></tr>
+      <tr><td class="k">microapp3-rn</td><td class="v">contador</td></tr>
+    </table>
+    <p style="margin-top:10px">Fronteiras reforçadas pelo <code class="inline">.eslintrc.js</code> de cada microapp.</p>
+  </div>
+</div>
+<footer class="foot"><span>rules-project/rules.md · IMPLEMENTACAO.md §6.2.1</span><span>Slide 7</span></footer>
+`,
+
+// 8. Diretrizes de hooks
+`
+<div class="kicker">Camada: feature module · hooks</div>
+<h2>Diretrizes de hooks</h2>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="pill green">Fazer</div>
+    <ul class="bullets">
+      <li>Uma responsabilidade: <code class="inline">use-&lt;domínio&gt;-&lt;ação&gt;.ts</code></li>
+      <li>Chamar <strong>só</strong> <code class="inline">repositories/</code> — nunca <code class="inline">services/</code></li>
+      <li>Donos de loading / erro / dados e de <code class="inline">useEffect</code></li>
+      <li>Screens finas: consomem o hook e passam props</li>
+      <li>Guard de race async (<code class="inline">ativo</code> / AbortController)</li>
+      <li>Hub compartilhado via Context Provider quando N screens precisam do mesmo estado</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="pill red">Não fazer</div>
+    <ul class="bullets">
+      <li><code class="inline">useEffect</code> de fetch dentro de <code class="inline">ui/screens/</code></li>
+      <li>Screen ou component importar service/repository</li>
+      <li>Hook importar <code class="inline">ui/screens</code>, <code class="inline">ui/components</code> ou <code class="inline">ui/styles</code></li>
+      <li>React dentro de <code class="inline">utils/</code></li>
+      <li>Importar entity pelo ficheiro <code class="inline">*_entity.ts</code> — usar barrel <code class="inline">../entities</code></li>
+    </ul>
+  </div>
+</div>
+<table class="cmp" style="margin-top:16px">
+  <tr><th>Camada</th><th>Pode</th><th>Não pode</th></tr>
+  <tr><td class="k">services/</td><td class="v">transporte + entities</td><td class="v">repositories, hooks, ui, utils</td></tr>
+  <tr><td class="k">repositories/</td><td class="v">services + utils</td><td class="v">hooks, ui</td></tr>
+  <tr><td class="k">hooks/</td><td class="v">repositories + utils</td><td class="v">services, ui/*</td></tr>
+  <tr><td class="k">screens/</td><td class="v">hooks + components</td><td class="v">services, repositories, useEffect de dados</td></tr>
+</table>
+<footer class="foot"><span>.eslintrc.js · use-pedidos-lista · use-metricas-lista · use-contador</span><span>Slide 8</span></footer>
+`,
+
+// 9. shared-rn — componentes compartilhados
 `
 <div class="kicker">Camada: libs</div>
-<h2>shared-rn — componentes e tema compartilhados</h2>
-<p class="subtitle" style="margin-bottom:14px">Mesma engrenagem do <code class="inline">react-native-builder-bob</code>, mas em vez de uma feature, expõe <strong style="color:var(--text)">UI kit mínimo</strong> reaproveitado por microapp1-rn, microapp2-rn, microapp3-rn e por todos os examples standalone.</p>
+<h2>shared-rn — UI kit, tema e request core</h2>
+<p class="subtitle" style="margin-bottom:14px">Mesma engrenagem do <code class="inline">react-native-builder-bob</code>: UI reaproveitada <strong style="color:var(--text)">e o client HTTP único</strong> usado por todos os <code class="inline">services/</code> dos microapps.</p>
 <div class="grid grid-2">
   <div class="card">
     <h3>Exports (src/index.tsx)</h3>
-    <pre style="margin:0"><span class="k">export</span> { LoadingScreen } <span class="k">from</span> <span class="s">'./LoadingScreen'</span>;
-<span class="k">export</span> { Card } <span class="k">from</span> <span class="s">'./Card'</span>;
-<span class="k">export</span> { PrimaryButton } <span class="k">from</span> <span class="s">'./PrimaryButton'</span>;
-<span class="k">export</span> { theme, colors, spacing, radius } <span class="k">from</span> <span class="s">'./theme'</span>;</pre>
+    <pre style="margin:0"><span class="k">export</span> { LoadingScreen, Card, PrimaryButton, AppBar };
+<span class="k">export</span> { theme, colors, spacing, radius };
+<span class="k">export</span> { httpClient, configureHttpClient,
+         mockAdapter, fetchAdapter, HttpError };</pre>
   </div>
   <div class="card">
     <h3>Quem consome</h3>
     <table class="cmp" style="font-size:13.5px">
       <tr><th>Consumidor</th><th>Uso</th></tr>
-      <tr><td class="k">microapp1/2/3-rn</td><td class="v"><code class="inline">Card</code> como wrapper do Screen</td></tr>
-      <tr><td class="k">microappN-rn/example</td><td class="v"><code class="inline">LoadingScreen</code>, <code class="inline">Card</code>, <code class="inline">PrimaryButton</code></td></tr>
+      <tr><td class="k">microapp1/2/3-rn UI</td><td class="v"><code class="inline">AppBar</code>, <code class="inline">Card</code>, tema</td></tr>
+      <tr><td class="k">microapp1/2/3-rn services</td><td class="v"><code class="inline">httpClient</code> (obrigatório)</td></tr>
+      <tr><td class="k">main app / examples</td><td class="v"><code class="inline">configureHttpClient</code> no bootstrap</td></tr>
     </table>
   </div>
 </div>
-<div class="ok" style="margin-top:16px">Dependência declarada como <code class="inline">"shared-rn": "git+https://github.com/zupiti/shared-rn.git#main"</code> — resolvida pela Git ref configurada, igual aos microfronts. Zero duplicação de UI entre pacotes.</div>
-<footer class="foot"><span>shared-rn/src</span><span>Slide 7</span></footer>
+<div class="ok" style="margin-top:16px">Services dos microapps <strong>não</strong> usam <code class="inline">fetch</code>/<code class="inline">axios</code> direto — só o core de <code class="inline">shared-rn</code>.</div>
+<footer class="foot"><span>shared-rn/src</span><span>Slide 9</span></footer>
 `,
 
-// 8. Metro monorepo config
+// 10. Request core + interceptors
+`
+<div class="kicker">Camada: libs · HTTP</div>
+<h2>Request core com interceptors</h2>
+<p class="subtitle" style="margin-bottom:14px"><code class="inline">shared-rn/src/core/http</code> — client singleton, interceptors de request/response/error, adapters mock (POC) e fetch (produção).</p>
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Bootstrap (App.tsx)</h3>
+    <pre style="margin:0"><span class="k">configureHttpClient</span>({
+  adapter: mockAdapter,       <span class="c">// ou fetchAdapter</span>
+  getAuthToken: <span class="k">async</span> () => token,
+  defaultHeaders: { <span class="s">'X-App'</span>: <span class="s">'main'</span> },
+});</pre>
+    <p style="margin-top:10px">Interceptors padrão: <code class="inline">Authorization: Bearer</code>, <code class="inline">X-Client: shared-rn-http</code>.</p>
+  </div>
+  <div class="card">
+    <h3>Service (ex.: PedidosService)</h3>
+    <pre style="margin:0"><span class="k">const</span> res = <span class="k">await</span> httpClient.get(<span class="s">'/pedidos'</span>);
+<span class="k">return</span> res.data;</pre>
+    <table class="cmp" style="font-size:13px;margin-top:12px">
+      <tr><th>Rota mock</th><th>Microapp</th></tr>
+      <tr><td class="k">/pedidos</td><td class="v">microapp1-rn</td></tr>
+      <tr><td class="k">/metricas</td><td class="v">microapp2-rn</td></tr>
+      <tr><td class="k">/contador</td><td class="v">microapp3-rn</td></tr>
+    </table>
+  </div>
+</div>
+<div class="flow-steps" style="margin-top:16px">
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div><div class="t">Request interceptors</div><div class="d">Auth token + headers padrão antes do adapter.</div></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div><div class="t">Adapter</div><div class="d"><code class="inline">mockAdapter</code> (POC) ou <code class="inline">fetchAdapter</code> (rede real).</div></div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div><div class="t">Response / error interceptors</div><div class="d">Transforma resposta ou propaga <code class="inline">HttpError</code>.</div></div>
+  </div>
+</div>
+<footer class="foot"><span>shared-rn/src/core/http · services → httpClient</span><span>Slide 10</span></footer>
+`,
+
+// 11. Metro monorepo config
 `
 <div class="kicker">Camada: bundler</div>
 <h2>Metro com react-native-monorepo-config</h2>
@@ -506,10 +635,10 @@ module.exports = withMetroConfig(getDefaultConfig(__dirname), {
     <span class="s">'shared-rn'</span>,
   ],
 });</pre>
-<footer class="foot"><span>microapp-main-app-rn/metro.config.js</span><span>Slide 8</span></footer>
+<footer class="foot"><span>microapp-main-app-rn/metro.config.js</span><span>Slide 11</span></footer>
 `,
 
-// 9. Metodologia de orquestração local
+// 12. Metodologia de orquestração local
 `
 <div class="kicker">Metodologia</div>
 <h2>CLI própria: apontamento local entre pacotes</h2>
@@ -530,10 +659,10 @@ module.exports = withMetroConfig(getDefaultConfig(__dirname), {
   microapp2-rn:         [microfront1-rn]
   microapp3-rn:         [microfront2-rn]</pre>
 </div>
-<footer class="foot"><span>microapps.yaml · scripts/microapps.js</span><span>Slide 9</span></footer>
+<footer class="foot"><span>microapps.yaml · scripts/microapps.js</span><span>Slide 12</span></footer>
 `,
 
-// 10. Como rodar - bootstrap e libs
+// 13. Como rodar - bootstrap e libs
 `
 <div class="kicker">Como rodar · Camada 1</div>
 <h2>Bootstrap do shell + build das libs</h2>
@@ -556,10 +685,10 @@ module.exports = withMetroConfig(getDefaultConfig(__dirname), {
   </div>
 </div>
 <div class="ok" style="margin-top:16px">Editar <code class="inline">src/</code> de qualquer lib recarrega no mainapp via symlink — sem <code class="inline">yarn</code> dentro da pasta da lib.</div>
-<footer class="foot"><span>Camada libs (microapp*/microfront*/shared-rn)</span><span>Slide 10</span></footer>
+<footer class="foot"><span>Camada libs (microapp*/microfront*/shared-rn)</span><span>Slide 13</span></footer>
 `,
 
-// 11. Como rodar - mainapp
+// 14. Como rodar - mainapp
 `
 <div class="kicker">Como rodar · Camada 2</div>
 <h2>Subir o Main App (Metro + device/emulador)</h2>
@@ -583,10 +712,10 @@ module.exports = withMetroConfig(getDefaultConfig(__dirname), {
   <h3>Resultado</h3>
   <p>O app final renderiza <strong style="color:var(--text)">Microapp 1 → 2 → 3</strong>, cada um exibindo seus respectivos <strong style="color:var(--text)">microfront1-rn / microfront2-rn</strong>, tudo resolvido localmente via workspace — sem publish.</p>
 </div>
-<footer class="foot"><span>microapp-main-app-rn</span><span>Slide 11</span></footer>
+<footer class="foot"><span>microapp-main-app-rn</span><span>Slide 14</span></footer>
 `,
 
-// 12. Como rodar - examples standalone
+// 15. Como rodar - examples standalone
 `
 <div class="kicker">Como rodar · Camada 3</div>
 <h2>Example apps: navegação, loading e shared-rn</h2>
@@ -616,22 +745,22 @@ module.exports = withMetroConfig(getDefaultConfig(__dirname), {
   <div class="card">
     <h3>Estrutura</h3>
     <pre style="margin:0">microapp1-rn/example/
-├── App.tsx                    <span class="c"># SafeAreaProvider + AppNavigator</span>
+├── App.tsx                    <span class="c"># configureHttpClient + navigator</span>
 ├── metro.config.js            <span class="c"># root = ../.. (raiz poc)</span>
 └── src/
-    ├── navigation/AppNavigator.tsx   <span class="c"># Loading, Home, Microapp, ExampleDetail</span>
+    ├── navigation/AppNavigator.tsx
     ├── screens/LoadingRoute.tsx
     ├── screens/HomeRoute.tsx
-    ├── screens/MicroappRoute.tsx     <span class="c"># <MicroappNScreen /> em tela própria</span>
+    ├── screens/MicroappRoute.tsx
     └── screens/ExampleDetailRoute.tsx</pre>
     <p style="margin-top:10px"><span class="k" style="color:var(--accent)">yarn</span> example:microapp1 <span class="c">(+ :android / :ios)</span> — mesmo padrão para microapp2/3.</p>
   </div>
 </div>
-<div class="ok" style="margin-top:16px">Grafo: <code class="inline">microappN-rn/example → microappN-rn, shared-rn</code>. Deps nativas: <code class="inline">react-native-screens@4.11.1</code> + <code class="inline">react-native-safe-area-context@5.3.0</code> (linha 5.x, compatível com Fabric + RN 0.78). Fluxo completo validado no emulador Android (Loading → Home → Microapp → voltar → ExampleDetail).</div>
-<footer class="foot"><span>microappN-rn/example</span><span>Slide 12</span></footer>
+<div class="ok" style="margin-top:16px">Grafo: <code class="inline">microappN-rn/example → microappN-rn, shared-rn</code>. Deps nativas: <code class="inline">react-native-screens@4.11.1</code> + <code class="inline">react-native-safe-area-context@5.3.0</code>. Bootstrap HTTP nos examples com o mesmo <code class="inline">configureHttpClient</code>.</div>
+<footer class="foot"><span>microappN-rn/example</span><span>Slide 15</span></footer>
 `,
 
-// 13. Troubleshooting nativo
+// 16. Troubleshooting nativo
 `
 <div class="kicker">Atenção · builds nativos</div>
 <h2>Gradle/Xcode e o node_modules hoisted</h2>
@@ -650,10 +779,10 @@ cliFile        = file(<span class="s">"../../../node_modules/react-native/cli.js
     <div class="warn" style="margin-top:10px">Build pode falhar em Xcode muito recente por incompatibilidade de toolchain (ex.: <code class="inline">fmt</code>/<code class="inline">glog</code> + C++20) — não relacionado ao workspace.</div>
   </div>
 </div>
-<footer class="foot"><span>Isso não quebra a regra de node_modules único — só aponta o path correto</span><span>Slide 13</span></footer>
+<footer class="foot"><span>Isso não quebra a regra de node_modules único — só aponta o path correto</span><span>Slide 16</span></footer>
 `,
 
-// 14. Checklist final
+// 17. Checklist final
 `
 <div class="kicker">Recapitulando</div>
 <h2>Checklist da arquitetura</h2>
@@ -662,11 +791,13 @@ cliFile        = file(<span class="s">"../../../node_modules/react-native/cli.js
     <h3>Arquitetura</h3>
     <ul class="bullets">
       <li>Hierarquia 1 mainapp → N microapps → N microfronts</li>
+      <li>Microapps com camadas <code class="inline">entities/services/repositories/hooks/utils/ui</code></li>
+      <li>Hooks só falam com repositories; screens sem <code class="inline">useEffect</code> de dados</li>
+      <li><code class="inline">shared-rn</code> HTTP core com interceptors — único client dos services</li>
       <li>Cada pacote em repositório git próprio (multi-repo)</li>
       <li>Shell privado agrega tudo via Yarn Workspaces</li>
       <li>Specs OpenSpec como contrato (<code class="inline">microapp-main-app-rn/rules-project/openspec</code>)</li>
       <li>Cada microapp tem <code class="inline">example/</code> standalone (roda sem o main app)</li>
-      <li><code class="inline">shared-rn</code> compartilha UI/tema entre microapps e examples</li>
     </ul>
   </div>
   <div class="card">
@@ -676,13 +807,14 @@ cliFile        = file(<span class="s">"../../../node_modules/react-native/cli.js
       <li>Um único <code class="inline">yarn</code> na raiz — zero <code class="inline">node_modules</code> recursivo</li>
       <li>Libs com bob (<code class="inline">prepare: bob build</code>), incluindo <code class="inline">shared-rn</code></li>
       <li>Metro com <code class="inline">react-native-monorepo-config</code></li>
+      <li><code class="inline">configureHttpClient</code> no App do main e dos examples</li>
       <li><code class="inline">yarn start</code> → <code class="inline">yarn android</code> / <code class="inline">yarn ios</code></li>
-      <li><code class="inline">yarn example:microapp1|2|3</code> (+ <code class="inline">:android</code>/<code class="inline">:ios</code>) com navegação Loading → Home → Microapp → ExampleDetail</li>
+      <li><code class="inline">yarn example:microapp1|2|3</code> (+ <code class="inline">:android</code>/<code class="inline">:ios</code>)</li>
     </ul>
   </div>
 </div>
-<div class="ok" style="margin-top:20px">Metodologia validada de ponta a ponta: build das 6 libs (incluindo <code class="inline">shared-rn</code>), bundle Metro (HTTP 200) do main app e dos 3 examples — todos resolvendo <code class="inline">shared-rn</code>, navegação e microfronts sem erro.</div>
-<footer class="foot"><span>poc-shell</span><span>Slide 14</span></footer>
+<div class="ok" style="margin-top:20px">POC cobre shell Melos-like, camadas de feature module, shared UI <strong>e</strong> request core compartilhado com interceptors.</div>
+<footer class="foot"><span>poc-shell</span><span>Slide 17</span></footer>
 `
 ];
 
